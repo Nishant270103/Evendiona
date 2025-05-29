@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+/* New Color Variables */
+/* Ultra Modern Color Palette */
+:root {
+  --black: #000000;
+  --white: #FFFFFF;
+  --gray-50: #FAFAFA;
+  --gray-100: #F5F5F5;
+  --gray-200: #E8E8E8;
+  --gray-400: #ADADAD;
+  --gray-600: #666666;
+  --gray-800: #1A1A1A;
+  --accent: #FF4444;
+}
+
+
+
+body {
+  font-family: var(--font-main), sans-serif;
+  background: var(--color-light);
+}
+
+/* Reset any conflicting styles */
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure containers are visible */
+.product-container {
+  background-color: #F9F7F5;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+/* Size button styles */
+.size-button {
+  width: 48px;
+  height: 48px;
+  border: 1px solid #D4C8BE;
+  background-color: white;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.size-button.selected {
+  background-color: #8A6552;
+  color: white;
+  border-color: #8A6552;
+}
+
+/* Quantity controls */
+.quantity-container {
+  border: 1px solid #D4C8BE;
+  display: inline-flex;
+  background-color: white;
+}
+
+.quantity-button {
+  padding: 8px 12px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  color: #8A6552;
+}
+
+.quantity-display {
+  padding: 8px 12px;
+  border-left: 1px solid #D4C8BE;
+  border-right: 1px solid #D4C8BE;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Add smooth transitions to buttons */
+button {
+  transition: all 0.3s ease-in-out;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Add fade-in animation for modals */
+.modal-overlay {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Add page transition effect */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Improve responsiveness for mobile and tablet devices */
+@media (max-width: 768px) {
+  .auth-card {
+    padding: 1.5rem;
+  }
+
+  .social-login-group {
+    flex-direction: column;
+  }
+
+  .header-nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .product-container {
+    padding: 10px;
+  }
+
+  .hero-section {
+    font-size: 3rem; /* Adjust for mobile */
+  }
+}
