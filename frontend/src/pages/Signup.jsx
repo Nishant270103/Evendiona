@@ -180,23 +180,19 @@ export default function Signup() {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       console.log('🔐 Processing Google signup...');
-      
-      // Decode the JWT credential to get user info
+
+      // Decode the JWT credential to get user info (optional)
       const userInfo = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
       console.log('👤 Google user info:', userInfo);
-      
-      // Send Google user data to backend
+
+      // Send Google credential token to backend
       const response = await fetch('http://localhost:5000/api/auth/google-login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          googleId: userInfo.sub,
-          email: userInfo.email,
-          name: userInfo.name,
-          picture: userInfo.picture,
-          credential: credentialResponse.credential
+          token: credentialResponse.credential
         })
       });
 

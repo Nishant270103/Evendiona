@@ -105,6 +105,7 @@ try {
   process.exit(1);
 }
 
+<<<<<<< HEAD
 // ------------------- ERROR HANDLING -------------------
 
 // 404 handler for unknown API routes
@@ -115,6 +116,65 @@ app.use('/api/*', (req, res) => {
     path: req.originalUrl,
     method: req.method
   });
+=======
+app.post('/api/auth/google-login', async (req, res) => {
+  const token = req.body.token || req.body.credential; // accept either field
+
+  if (!token) {
+    console.error('❌ Token is missing in the request body');
+    return res.status(400).json({ success: false, message: 'Token is missing' });
+  }
+
+  console.log('📥 Received token:', token);
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID, // Use your correct Google client ID
+    });
+
+    const payload = ticket.getPayload();
+    console.log('✅ Google user info:', payload);
+
+    const userEmail = payload.email;
+    const userName = payload.name;
+
+    // Check if user exists or create a new user
+    let user = await User.findOne({ email: userEmail });
+    if (!user) {
+      console.log('ℹ️ User not found, creating a new user');
+      user = await User.create({
+        name: userName,
+        email: userEmail,
+        isEmailVerified: true,
+        isActive: true,
+      });
+    }
+
+    // Generate JWT token
+    const jwtToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '7d' });
+
+    console.log('✅ JWT token generated:', jwtToken);
+
+    res.json({
+      success: true,
+      message: 'User authenticated',
+      data: {
+        user: {
+          id: user._id,
+          name: userName,
+          email: userEmail,
+          role: user.role,
+          isEmailVerified: user.isEmailVerified
+        },
+        token: jwtToken
+      }
+    });
+  } catch (error) {
+    console.error('❌ Google authentication error:', error);
+    res.status(400).json({ success: false, message: 'Invalid token or authentication failed' });
+  }
+>>>>>>> ab36fdd14e4f7c104a788cfb80e7e83c39601579
 });
 
 // Global error handler

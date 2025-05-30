@@ -10,7 +10,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+<<<<<<< HEAD
   const { loginWithToken, isAuthenticated } = useAuth();
+=======
+  const { login, loginWithToken, isAuthenticated } = useAuth();
+>>>>>>> ab36fdd14e4f7c104a788cfb80e7e83c39601579
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,10 +65,15 @@ export default function Login() {
         }
       );
       const data = await res.json();
+<<<<<<< HEAD
       if (res.ok && data.success && data.data?.token) {
         if (loginWithToken) {
           await loginWithToken(data.data.token, data.data.user);
         }
+=======
+      if (data.success) {
+        await loginWithToken(data.data.token, data.data.user);
+>>>>>>> ab36fdd14e4f7c104a788cfb80e7e83c39601579
         navigate("/", { replace: true });
       } else {
         setError(data.message || "Invalid OTP. Please try again.");
