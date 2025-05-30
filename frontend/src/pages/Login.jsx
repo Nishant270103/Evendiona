@@ -12,7 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, loginWithToken, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   // Redirect to home if already logged in
@@ -56,10 +56,7 @@ export default function Login() {
       });
       const data = await res.json();
       if (data.success) {
-        localStorage.setItem("token", data.data.token);
-        if (login) {
-          await login(null, null, data.data.token);
-        }
+        await loginWithToken(data.data.token, data.data.user);
         navigate("/", { replace: true });
       } else {
         setError(data.message || "Google login failed");

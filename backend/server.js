@@ -1143,11 +1143,11 @@ if (!process.env.GOOGLE_CLIENT_ID) {
 }
 
 app.post('/api/auth/google-login', async (req, res) => {
-  const { token } = req.body; // Ensure the 'token' field is being received
+  const token = req.body.token || req.body.credential; // accept either field
 
   if (!token) {
     console.error('❌ Token is missing in the request body');
-    return res.status(400).json({ error: 'Token is missing' });
+    return res.status(400).json({ success: false, message: 'Token is missing' });
   }
 
   console.log('📥 Received token:', token);
@@ -1182,14 +1182,22 @@ app.post('/api/auth/google-login', async (req, res) => {
     console.log('✅ JWT token generated:', jwtToken);
 
     res.json({
+      success: true,
       message: 'User authenticated',
-      userEmail,
-      userName,
-      token: jwtToken,
+      data: {
+        user: {
+          id: user._id,
+          name: userName,
+          email: userEmail,
+          role: user.role,
+          isEmailVerified: user.isEmailVerified
+        },
+        token: jwtToken
+      }
     });
   } catch (error) {
     console.error('❌ Google authentication error:', error);
-    res.status(400).json({ error: 'Invalid token or authentication failed' });
+    res.status(400).json({ success: false, message: 'Invalid token or authentication failed' });
   }
 });
 
