@@ -2,32 +2,31 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminLogin() {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError("");
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("http://localhost:5000/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/auth/admin-login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
       const data = await response.json();
-      if (data.success && data.data.token) {
+      if (response.ok && data.success && data.data?.token) {
         localStorage.setItem("adminToken", data.data.token);
         navigate("/admin");
       } else {
-        setError(data.message || "Invalid credentials");
+        setError(data.message || "Invalid admin credentials");
       }
     } catch {
       setError("Network error. Please try again.");
@@ -36,43 +35,88 @@ export default function AdminLogin() {
   };
 
   return (
-    <div style={{ maxWidth: 300, margin: "40px auto", padding: 16, border: "1px solid #ddd", borderRadius: 6 }}>
-      <h2 style={{ textAlign: "center", marginBottom: 16 }}>Admin Login</h2>
+    <div
+      style={{
+        maxWidth: 340,
+        margin: "60px auto",
+        padding: 24,
+        border: "1px solid #e5e7eb",
+        borderRadius: 8,
+        background: "#fff",
+        boxShadow: "0 2px 8px 0 rgba(0,0,0,0.04)",
+      }}
+    >
+      <h2 style={{ textAlign: "center", marginBottom: 18, fontWeight: 600, fontSize: 22 }}>
+        Admin Login
+      </h2>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 12 }}>
-          <label>Email</label>
+        <div style={{ marginBottom: 16 }}>
+          <label htmlFor="admin-email" style={{ fontWeight: 500 }}>
+            Email
+          </label>
           <input
+            id="admin-email"
             type="email"
-            name="email"
             required
-            value={formData.email}
-            onChange={handleInputChange}
-            style={{ width: "100%", padding: 6, marginTop: 4 }}
+            autoFocus
+            value={email}
+            onChange={e => {
+              setEmail(e.target.value);
+              setError("");
+            }}
+            style={{
+              width: "100%",
+              padding: "8px 10px",
+              marginTop: 4,
+              border: "1px solid #d1d5db",
+              borderRadius: 4,
+              fontSize: 15,
+            }}
           />
         </div>
-        <div style={{ marginBottom: 12 }}>
-          <label>Password</label>
+        <div style={{ marginBottom: 16 }}>
+          <label htmlFor="admin-password" style={{ fontWeight: 500 }}>
+            Password
+          </label>
           <input
+            id="admin-password"
             type="password"
-            name="password"
             required
-            value={formData.password}
-            onChange={handleInputChange}
-            style={{ width: "100%", padding: 6, marginTop: 4 }}
+            value={password}
+            onChange={e => {
+              setPassword(e.target.value);
+              setError("");
+            }}
+            style={{
+              width: "100%",
+              padding: "8px 10px",
+              marginTop: 4,
+              border: "1px solid #d1d5db",
+              borderRadius: 4,
+              fontSize: 15,
+            }}
           />
         </div>
-        {error && <div style={{ color: "red", marginBottom: 8 }}>{error}</div>}
+        {error && (
+          <div style={{ color: "#dc2626", marginBottom: 12, fontSize: 14 }}>
+            {error}
+          </div>
+        )}
         <button
           type="submit"
           disabled={loading}
           style={{
             width: "100%",
-            padding: 8,
+            padding: "10px 0",
             background: "#2563eb",
             color: "#fff",
             border: "none",
             borderRadius: 4,
-            fontWeight: "bold"
+            fontWeight: 600,
+            fontSize: 16,
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.7 : 1,
+            transition: "background 0.2s",
           }}
         >
           {loading ? "Logging in..." : "Login"}

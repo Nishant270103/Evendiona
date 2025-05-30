@@ -1,4 +1,5 @@
-// src/routes/cart.js - CART ROUTES
+// backend/src/routes/cart.js
+
 const express = require('express');
 const router = express.Router();
 const {
@@ -14,27 +15,27 @@ const { protect } = require('../middleware/auth');
 router.use(protect);
 
 // @route   GET /api/cart
-// @desc    Get user's cart
+// @desc    Get the current user's cart
 // @access  Private
 router.get('/', getCart);
 
 // @route   POST /api/cart/add
-// @desc    Add item to cart
+// @desc    Add an item to the cart
 // @access  Private
 router.post('/add', addToCart);
 
 // @route   PUT /api/cart/item/:itemId
-// @desc    Update cart item quantity
+// @desc    Update the quantity of a cart item
 // @access  Private
 router.put('/item/:itemId', updateCartItem);
 
 // @route   DELETE /api/cart/item/:itemId
-// @desc    Remove item from cart
+// @desc    Remove an item from the cart
 // @access  Private
 router.delete('/item/:itemId', removeFromCart);
 
 // @route   DELETE /api/cart
-// @desc    Clear entire cart
+// @desc    Clear the entire cart
 // @access  Private
 router.delete('/', clearCart);
 

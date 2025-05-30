@@ -1,38 +1,33 @@
-// src/components/layout/Footer.jsx - MODERN MINIMALIST FOOTER
 import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
     <footer className="bg-white border-t border-gray-100">
-      {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid md:grid-cols-4 gap-12">
-          
           {/* Brand Section */}
           <div className="space-y-6">
             <img src="/images/logo.png" alt="Evendiona Logo" className="h-16" />
             <p className="text-gray-600 font-light leading-relaxed">
-              Premium T-shirts designed for comfort and style. 
-              Crafted with love in India.
+              Premium T-shirts designed for comfort and style. Crafted with love in India.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
+              <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Facebook">
                 <span className="text-xl">📘</span>
               </a>
-              <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
+              <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Instagram">
                 <span className="text-xl">📷</span>
               </a>
-              <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
+              <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Twitter">
                 <span className="text-xl">🐦</span>
               </a>
             </div>
           </div>
-
           {/* Quick Links */}
           <div className="space-y-6">
             <h4 className="font-medium text-gray-900 tracking-wide">SHOP</h4>
             <div className="space-y-3">
-              <Link to="/product/1" className="block text-gray-600 hover:text-gray-900 transition-colors font-light">
+              <Link to="/products?category=t-shirts" className="block text-gray-600 hover:text-gray-900 transition-colors font-light">
                 T-Shirts
               </Link>
               <Link to="/catalog" className="block text-gray-600 hover:text-gray-900 transition-colors font-light">
@@ -46,7 +41,6 @@ export default function Footer() {
               </Link>
             </div>
           </div>
-
           {/* Support */}
           <div className="space-y-6">
             <h4 className="font-medium text-gray-900 tracking-wide">SUPPORT</h4>
@@ -65,7 +59,6 @@ export default function Footer() {
               </Link>
             </div>
           </div>
-
           {/* Newsletter */}
           <div className="space-y-6">
             <h4 className="font-medium text-gray-900 tracking-wide">NEWSLETTER</h4>
@@ -88,7 +81,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-
       {/* Bottom Footer */}
       <div className="border-t border-gray-100 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 py-6">

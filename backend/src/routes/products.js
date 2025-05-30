@@ -1,4 +1,5 @@
-// src/routes/products.js - PRODUCT ROUTES
+// backend/src/routes/products.js
+
 const express = require('express');
 const router = express.Router();
 const {
@@ -13,38 +14,38 @@ const {
 const { protect, admin } = require('../middleware/auth');
 
 // @route   GET /api/products
-// @desc    Get all products with filtering, sorting, pagination
+// @desc    List all products with filtering, sorting, and pagination
 // @access  Public
 router.get('/', getProducts);
 
-// @route   GET /api/products/:id
-// @desc    Get single product
-// @access  Public
-router.get('/:id', getProduct);
-
-// @route   POST /api/products
-// @desc    Create new product
-// @access  Private/Admin
-router.post('/', protect, admin, createProduct);
-
-// @route   PUT /api/products/:id
-// @desc    Update product
-// @access  Private/Admin
-router.put('/:id', protect, admin, updateProduct);
-
-// @route   DELETE /api/products/:id
-// @desc    Delete product
-// @access  Private/Admin
-router.delete('/:id', protect, admin, deleteProduct);
-
 // @route   GET /api/products/:id/reviews
-// @desc    Get product reviews
+// @desc    Get all reviews for a product
 // @access  Public
 router.get('/:id/reviews', getProductReviews);
 
 // @route   POST /api/products/:id/reviews
-// @desc    Add product review
+// @desc    Add a review to a product (logged-in users)
 // @access  Private
 router.post('/:id/reviews', protect, addProductReview);
+
+// @route   GET /api/products/:id
+// @desc    Get a single product by ID
+// @access  Public
+router.get('/:id', getProduct);
+
+// @route   POST /api/products
+// @desc    Create a new product (admin only)
+// @access  Private/Admin
+router.post('/', protect, admin, createProduct);
+
+// @route   PUT /api/products/:id
+// @desc    Update a product (admin only)
+// @access  Private/Admin
+router.put('/:id', protect, admin, updateProduct);
+
+// @route   DELETE /api/products/:id
+// @desc    Soft delete a product (admin only)
+// @access  Private/Admin
+router.delete('/:id', protect, admin, deleteProduct);
 
 module.exports = router;

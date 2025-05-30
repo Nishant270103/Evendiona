@@ -1,15 +1,19 @@
-// src/routes/users.js - CREATE THIS FILE
+// backend/src/routes/users.js
+
 const express = require('express');
 const router = express.Router();
 const { protect, admin } = require('../middleware/auth');
 const User = require('../models/User');
 
 // @route   GET /api/users/profile
-// @desc    Get user profile
+// @desc    Get current user profile
 // @access  Private
 router.get('/profile', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.userId || req.user.id).select('-password -otp -otpExpiry');
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
     res.json({
       success: true,
       data: { user }
@@ -23,17 +27,27 @@ router.get('/profile', protect, async (req, res) => {
 });
 
 // @route   PUT /api/users/profile
-// @desc    Update user profile
+// @desc    Update user profile (name, phone, addresses, avatar)
 // @access  Private
 router.put('/profile', protect, async (req, res) => {
   try {
-    const { name, phone, address } = req.body;
-    
+    const { name, phone, addresses, avatar } = req.body;
+
+    const updateFields = {};
+    if (name !== undefined) updateFields.name = name;
+    if (phone !== undefined) updateFields.phone = phone;
+    if (addresses !== undefined) updateFields.addresses = addresses;
+    if (avatar !== undefined) updateFields.avatar = avatar;
+
     const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { name, phone, address },
+      req.user.userId || req.user.id,
+      { $set: updateFields },
       { new: true, runValidators: true }
-    );
+    ).select('-password -otp -otpExpiry');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
     res.json({
       success: true,
@@ -48,12 +62,12 @@ router.put('/profile', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/users (admin only)
-// @desc    Get all users
+// @route   GET /api/users
+// @desc    Get all users (admin only)
 // @access  Private/Admin
 router.get('/', protect, admin, async (req, res) => {
   try {
-    const users = await User.find().select('-password');
+    const users = await User.find().select('-password -otp -otpExpiry');
     res.json({
       success: true,
       data: { users }

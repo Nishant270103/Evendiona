@@ -1,5 +1,37 @@
-// src/models/Cart.js - CART MODEL
+// backend/src/models/Cart.js
+
 const mongoose = require('mongoose');
+
+// Cart Item Schema
+const cartItemSchema = new mongoose.Schema({
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  },
+  name: String,
+  price: Number,
+  salePrice: Number,
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1,
+    default: 1
+  },
+  size: {
+    type: String,
+    required: true
+  },
+  color: {
+    type: String,
+    required: true
+  },
+  image: String,
+  addedAt: {
+    type: Date,
+    default: Date.now
+  }
+}, { _id: false });
 
 const cartSchema = new mongoose.Schema({
   user: {
@@ -8,35 +40,7 @@ const cartSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  items: [{
-    product: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product',
-      required: true
-    },
-    name: String,
-    price: Number,
-    salePrice: Number,
-    quantity: {
-      type: Number,
-      required: true,
-      min: 1,
-      default: 1
-    },
-    size: {
-      type: String,
-      required: true
-    },
-    color: {
-      type: String,
-      required: true
-    },
-    image: String,
-    addedAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
+  items: [cartItemSchema],
   totalItems: {
     type: Number,
     default: 0
@@ -57,17 +61,17 @@ const cartSchema = new mongoose.Schema({
 cartSchema.pre('save', function(next) {
   this.totalItems = this.items.reduce((total, item) => total + item.quantity, 0);
   this.totalPrice = this.items.reduce((total, item) => {
-    const price = item.salePrice || item.price;
+    const price = item.salePrice != null ? item.salePrice : item.price;
     return total + (price * item.quantity);
   }, 0);
   this.lastUpdated = new Date();
   next();
 });
 
-// Remove empty carts
-cartSchema.pre('save', function(next) {
-  if (this.items.length === 0) {
-    this.remove();
+// Remove cart document if empty after save
+cartSchema.post('save', async function(doc, next) {
+  if (doc.items.length === 0) {
+    await doc.remove();
   }
   next();
 });

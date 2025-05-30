@@ -1,7 +1,44 @@
-// src/models/Product.js
+// backend/src/models/Product.js
 
 const mongoose = require('mongoose');
 
+// Size schema
+const sizeSchema = new mongoose.Schema({
+  size: {
+    type: String,
+    enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    required: true
+  },
+  stock: {
+    type: Number,
+    required: true,
+    min: [0, 'Stock cannot be negative']
+  }
+}, { _id: false });
+
+// Color schema
+const colorSchema = new mongoose.Schema({
+  color: { type: String, required: true },
+  colorCode: { type: String, required: true },
+  images: [{ type: String }]
+}, { _id: false });
+
+// Image schema
+const imageSchema = new mongoose.Schema({
+  url: { type: String, required: true },
+  alt: { type: String, default: '' },
+  isPrimary: { type: Boolean, default: false }
+}, { _id: false });
+
+// Review schema
+const reviewSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  comment: String,
+  createdAt: { type: Date, default: Date.now }
+}, { _id: false });
+
+// Main Product schema
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -24,7 +61,6 @@ const productSchema = new mongoose.Schema({
     min: [0, 'Sale price cannot be negative'],
     validate: {
       validator: function(value) {
-        // Sale price must be less than price (or undefined)
         return value == null || value < this.price;
       },
       message: 'Sale price must be less than regular price'
@@ -35,28 +71,9 @@ const productSchema = new mongoose.Schema({
     required: [true, 'Product category is required'],
     enum: ['t-shirts', 'casual', 'premium', 'limited-edition']
   },
-  sizes: [{
-    size: {
-      type: String,
-      enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-      required: true
-    },
-    stock: {
-      type: Number,
-      required: true,
-      min: [0, 'Stock cannot be negative']
-    }
-  }],
-  colors: [{
-    color: { type: String, required: true },
-    colorCode: { type: String, required: true },
-    images: [String] // URLs or file paths
-  }],
-  images: [{
-    url: { type: String, required: true }, // Image URL or file path
-    alt: { type: String, default: '' },
-    isPrimary: { type: Boolean, default: false }
-  }],
+  sizes: [sizeSchema],
+  colors: [colorSchema],
+  images: [imageSchema],
   material: {
     type: String,
     default: '100% Cotton'
@@ -71,12 +88,7 @@ const productSchema = new mongoose.Schema({
     average: { type: Number, default: 0, min: 0, max: 5 },
     count: { type: Number, default: 0 }
   },
-  reviews: [{
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    rating: { type: Number, required: true, min: 1, max: 5 },
-    comment: String,
-    createdAt: { type: Date, default: Date.now }
-  }],
+  reviews: [reviewSchema],
   isActive: {
     type: Boolean,
     default: true
@@ -97,10 +109,10 @@ const productSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Auto-calculate total stock from sizes
+// Auto-calculate total stock from sizes before saving
 productSchema.pre('save', function(next) {
-  if (this.sizes && this.sizes.length > 0) {
-    this.totalStock = this.sizes.reduce((total, size) => total + size.stock, 0);
+  if (Array.isArray(this.sizes)) {
+    this.totalStock = this.sizes.reduce((sum, sz) => sum + (sz.stock || 0), 0);
   } else {
     this.totalStock = 0;
   }
@@ -109,8 +121,8 @@ productSchema.pre('save', function(next) {
 
 // Update rating when reviews change
 productSchema.methods.updateRating = function() {
-  if (this.reviews && this.reviews.length > 0) {
-    const totalRating = this.reviews.reduce((sum, review) => sum + review.rating, 0);
+  if (Array.isArray(this.reviews) && this.reviews.length > 0) {
+    const totalRating = this.reviews.reduce((sum, r) => sum + r.rating, 0);
     this.rating.average = totalRating / this.reviews.length;
     this.rating.count = this.reviews.length;
   } else {

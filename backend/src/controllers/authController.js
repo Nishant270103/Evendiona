@@ -1,132 +1,75 @@
-// src/controllers/authController.js - COMPLETE AUTH CONTROLLER
+// backend/src/controllers/authController.js
+
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const { sendOTPEmail } = require('../services/emailService');
 
-// Generate JWT Token
-const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'fallback-secret', {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
-  });
+// Helper: Generate JWT
+const generateToken = (userId, role) => {
+  return jwt.sign(
+    { userId, role },
+    process.env.JWT_SECRET || 'fallback-secret',
+    { expiresIn: process.env.JWT_EXPIRE || '7d' }
+  );
 };
 
-// @desc    Register user
-// @route   POST /api/auth/register
+// Helper: Generate 6-digit OTP
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+// @desc    Request OTP for login/register
+// @route   POST /api/auth/request-otp
 // @access  Public
-exports.register = async (req, res) => {
+exports.requestOTP = async (req, res) => {
   try {
-    const { name, email, password, confirmPassword } = req.body;
+    const { email, name } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+    let user = await User.findOne({ email: email.toLowerCase() });
 
-    // Validation
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide name, email, and password'
-      });
+    // If registering, allow name field
+    if (!user && name) {
+      user = await User.create({ email: email.toLowerCase(), name: name.trim() });
+    } else if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found. Please provide name to register.' });
     }
 
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Passwords do not match'
-      });
-    }
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 10 * 60 * 1000; // 10 min
+    await user.save();
 
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters'
-      });
-    }
+    // Send OTP via Gmail SMTP (nodemailer)
+    await sendOTPEmail(user.email, otp);
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User already exists with this email'
-      });
-    }
-
-    // Create user
-    const user = await User.create({
-      name: name.trim(),
-      email: email.toLowerCase(),
-      password
-    });
-
-    // Generate token
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        },
-        token
-      }
-    });
-
+    res.json({ success: true, message: 'OTP sent to your email' });
   } catch (error) {
-    console.error('Register error:', error);
-    
-    // Handle duplicate email error
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'User already exists with this email'
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Server error during registration',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    console.error('Request OTP error:', error);
+    res.status(500).json({ success: false, message: 'Server error sending OTP' });
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
+// @desc    Verify OTP (login/register)
+// @route   POST /api/auth/verify-otp
 // @access  Public
-exports.login = async (req, res) => {
+exports.verifyOTP = async (req, res) => {
   try {
-    const { email, password } = req.body;
-
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide email and password'
-      });
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP are required' });
     }
-
-    // Find user and include password
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || user.otp !== otp || Date.now() > user.otpExpiry) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
+    // Clear OTP fields
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    user.isEmailVerified = true;
+    await user.save();
 
-    // Check password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
-    }
-
-    // Generate token
-    const token = generateToken(user._id);
-
+    const token = generateToken(user._id, user.role);
     res.json({
       success: true,
       message: 'Login successful',
@@ -136,19 +79,55 @@ exports.login = async (req, res) => {
           name: user.name,
           email: user.email,
           role: user.role,
-          avatar: user.avatar
+          avatar: user.avatar,
+          phone: user.phone,
+          addresses: user.addresses
         },
         token
       }
     });
-
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during login',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ success: false, message: 'Server error verifying OTP' });
+  }
+};
+
+// @desc    Admin login (email and password)
+// @route   POST /api/auth/admin-login
+// @access  Public
+exports.adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password required' });
+    }
+    const user = await User.findOne({ email: email.toLowerCase(), role: 'admin' }).select('+password');
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+    }
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+    }
+    const token = generateToken(user._id, user.role);
+    res.json({
+      success: true,
+      message: 'Admin login successful',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatar,
+          phone: user.phone
+        },
+        token
+      }
     });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ success: false, message: 'Server error during admin login' });
   }
 };
 
@@ -157,8 +136,10 @@ exports.login = async (req, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    
+    const user = await User.findById(req.user.userId || req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     res.json({
       success: true,
       data: {
@@ -169,153 +150,19 @@ exports.getMe = async (req, res) => {
           role: user.role,
           avatar: user.avatar,
           phone: user.phone,
-          address: user.address
+          addresses: user.addresses
         }
       }
     });
   } catch (error) {
     console.error('Get me error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// @desc    Logout user
+// @desc    Logout user (client should just delete token)
 // @route   POST /api/auth/logout
 // @access  Private
 exports.logout = (req, res) => {
-  res.json({
-    success: true,
-    message: 'Logged out successfully'
-  });
-};
-
-// @desc    Forgot password
-// @route   POST /api/auth/forgot-password
-// @access  Public
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide email address'
-      });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found with this email'
-      });
-    }
-
-    // Generate reset token
-    const resetToken = crypto.randomBytes(20).toString('hex');
-    
-    // Hash token and set to resetPasswordToken field
-    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-    await user.save();
-
-    // TODO: Send email with reset token
-    // For now, just return the token (remove in production)
-    res.json({
-      success: true,
-      message: 'Password reset email sent',
-      resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined
-    });
-
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Email could not be sent',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-};
-
-// @desc    Reset password
-// @route   PUT /api/auth/reset-password/:token
-// @access  Public
-exports.resetPassword = async (req, res) => {
-  try {
-    const { password, confirmPassword } = req.body;
-    const { token } = req.params;
-
-    if (!password || !confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide password and confirm password'
-      });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Passwords do not match'
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters'
-      });
-    }
-
-    // Get hashed token
-    const resetPasswordToken = crypto.createHash('sha256').update(token).digest('hex');
-
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired reset token'
-      });
-    }
-
-    // Set new password
-    user.password = password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
-
-    await user.save();
-
-    // Generate new token
-    const jwtToken = generateToken(user._id);
-
-    res.json({
-      success: true,
-      message: 'Password reset successful',
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
-        },
-        token: jwtToken
-      }
-    });
-
-  } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during password reset',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
+  res.json({ success: true, message: 'Logged out successfully' });
 };

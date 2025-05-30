@@ -1,36 +1,65 @@
-// routes/wishlist.js
+// backend/src/routes/wishlist.js
+
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
-const Wishlist = require('../models/Wishlist'); // or add wishlist array to User model
+const Wishlist = require('../models/Wishlist');
 
-// Get wishlist
-router.get('/', protect, async (req, res) => {
-  const wishlist = await Wishlist.findOne({ user: req.user._id }).populate('products');
-  res.json({ success: true, data: wishlist ? wishlist.products : [] });
+// All wishlist routes require authentication
+router.use(protect);
+
+// @route   GET /api/wishlist
+// @desc    Get user's wishlist
+// @access  Private
+router.get('/', async (req, res) => {
+  try {
+    const wishlist = await Wishlist.findOne({ user: req.user._id || req.user.id })
+      .populate('products');
+    res.json({
+      success: true,
+      data: wishlist ? wishlist.products : []
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
-// Add to wishlist
-router.post('/:productId', protect, async (req, res) => {
-  let wishlist = await Wishlist.findOne({ user: req.user._id });
-  if (!wishlist) wishlist = await Wishlist.create({ user: req.user._id, products: [] });
-  if (!wishlist.products.includes(req.params.productId)) {
-    wishlist.products.push(req.params.productId);
-    await wishlist.save();
+// @route   POST /api/wishlist/:productId
+// @desc    Add a product to wishlist
+// @access  Private
+router.post('/:productId', async (req, res) => {
+  try {
+    let wishlist = await Wishlist.findOne({ user: req.user._id || req.user.id });
+    if (!wishlist) {
+      wishlist = await Wishlist.create({ user: req.user._id || req.user.id, products: [] });
+    }
+    const productId = req.params.productId;
+    if (!wishlist.products.includes(productId)) {
+      wishlist.products.push(productId);
+      await wishlist.save();
+    }
+    res.json({ success: true, message: 'Product added to wishlist' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
-  res.json({ success: true });
 });
 
-// Remove from wishlist
-router.delete('/:productId', protect, async (req, res) => {
-  let wishlist = await Wishlist.findOne({ user: req.user._id });
-  if (wishlist) {
-    wishlist.products = wishlist.products.filter(
-      (pid) => pid.toString() !== req.params.productId
-    );
-    await wishlist.save();
+// @route   DELETE /api/wishlist/:productId
+// @desc    Remove a product from wishlist
+// @access  Private
+router.delete('/:productId', async (req, res) => {
+  try {
+    const wishlist = await Wishlist.findOne({ user: req.user._id || req.user.id });
+    if (wishlist) {
+      wishlist.products = wishlist.products.filter(
+        pid => pid.toString() !== req.params.productId
+      );
+      await wishlist.save();
+    }
+    res.json({ success: true, message: 'Product removed from wishlist' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' });
   }
-  res.json({ success: true });
 });
 
 module.exports = router;

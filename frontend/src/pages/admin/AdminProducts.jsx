@@ -2,6 +2,36 @@
 
 import { useEffect, useState, useRef } from "react";
 
+// Cloudinary Upload Widget Button
+function CloudinaryUploadButton({ onUpload }) {
+  const widgetRef = useRef();
+  useEffect(() => {
+    if (window.cloudinary && !widgetRef.current) {
+      widgetRef.current = window.cloudinary.createUploadWidget(
+        {
+          cloudName: "YOUR_CLOUD_NAME",        // <-- Change to your Cloudinary cloud name
+          uploadPreset: "YOUR_UPLOAD_PRESET",  // <-- Change to your unsigned preset
+          multiple: false,
+        },
+        (error, result) => {
+          if (!error && result && result.event === "success") {
+            onUpload(result.info.secure_url); // This is the image URL
+          }
+        }
+      );
+    }
+  }, [onUpload]);
+  return (
+    <button
+      type="button"
+      onClick={() => widgetRef.current && widgetRef.current.open()}
+      className="bg-blue-600 text-white px-4 py-2 rounded"
+    >
+      Upload Image
+    </button>
+  );
+}
+
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +42,7 @@ export default function AdminProducts() {
     price: '',
     stock: '',
     status: 'active',
-    image: null
+    image: ''
   });
   const [imagePreview, setImagePreview] = useState(null);
   const [adding, setAdding] = useState(false);
@@ -20,7 +50,6 @@ export default function AdminProducts() {
   const [editProduct, setEditProduct] = useState({});
   const [editImagePreview, setEditImagePreview] = useState(null);
   const [deleting, setDeleting] = useState(null);
-  const fileInputRef = useRef();
 
   // Fetch products from backend
   const fetchProducts = async () => {
@@ -50,22 +79,27 @@ export default function AdminProducts() {
     setAdding(true);
     try {
       const token = localStorage.getItem('adminToken');
-      const formData = new FormData();
-      for (const key in newProduct) {
-        if (newProduct[key]) formData.append(key, newProduct[key]);
-      }
+      // Save image as array of objects for schema compatibility
+      const productToSend = {
+        ...newProduct,
+        images: newProduct.image ? [{ url: newProduct.image }] : [],
+      };
+      delete productToSend.image;
+
       const response = await fetch('http://localhost:5000/api/admin/products', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(productToSend)
       });
       const data = await response.json();
 
       if (data.success) {
         alert('Product created successfully!');
-        setNewProduct({ name: '', description: '', category: '', price: '', stock: '', status: 'active', image: null });
+        setNewProduct({ name: '', description: '', category: '', price: '', stock: '', status: 'active', image: '' });
         setImagePreview(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
         fetchProducts();
       } else {
         alert(data.message || 'Failed to create product');
@@ -86,9 +120,9 @@ export default function AdminProducts() {
       price: prod.price,
       stock: prod.stock,
       status: prod.status,
-      image: null // for new image upload
+      image: prod.images && prod.images[0]?.url ? prod.images[0].url : ''
     });
-    setEditImagePreview(prod.image ? `http://localhost:5000${prod.image}` : null);
+    setEditImagePreview(prod.images && prod.images[0]?.url ? prod.images[0].url : null);
   };
 
   // Cancel editing
@@ -102,14 +136,19 @@ export default function AdminProducts() {
   const handleEditSave = async (id) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const formData = new FormData();
-      for (const key in editProduct) {
-        if (editProduct[key]) formData.append(key, editProduct[key]);
-      }
+      const productToSend = {
+        ...editProduct,
+        images: editProduct.image ? [{ url: editProduct.image }] : [],
+      };
+      delete productToSend.image;
+
       const response = await fetch(`http://localhost:5000/api/admin/products/${id}`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(productToSend)
       });
       const data = await response.json();
       if (data.success) {
@@ -148,18 +187,16 @@ export default function AdminProducts() {
     setDeleting(null);
   };
 
-  // Handle image preview for add
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setNewProduct({ ...newProduct, image: file });
-    setImagePreview(file ? URL.createObjectURL(file) : null);
+  // Handle image upload for add
+  const handleCloudinaryUpload = (url) => {
+    setNewProduct({ ...newProduct, image: url });
+    setImagePreview(url);
   };
 
-  // Handle image preview for edit
-  const handleEditImageChange = (e) => {
-    const file = e.target.files[0];
-    setEditProduct({ ...editProduct, image: file });
-    setEditImagePreview(file ? URL.createObjectURL(file) : null);
+  // Handle image upload for edit
+  const handleEditCloudinaryUpload = (url) => {
+    setEditProduct({ ...editProduct, image: url });
+    setEditImagePreview(url);
   };
 
   return (
@@ -220,13 +257,7 @@ export default function AdminProducts() {
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          onChange={handleImageChange}
-          className="border px-3 py-2 rounded"
-        />
+        <CloudinaryUploadButton onUpload={handleCloudinaryUpload} />
         {imagePreview && (
           <img src={imagePreview} alt="Preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8 }} />
         )}
@@ -266,12 +297,7 @@ export default function AdminProducts() {
                         {editImagePreview && (
                           <img src={editImagePreview} alt="Preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8 }} />
                         )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleEditImageChange}
-                          className="border px-2 py-1 rounded w-full"
-                        />
+                        <CloudinaryUploadButton onUpload={handleEditCloudinaryUpload} />
                       </td>
                       <td className="px-4 py-2">
                         <input
@@ -346,8 +372,8 @@ export default function AdminProducts() {
                   ) : (
                     <>
                       <td className="px-4 py-2">
-                        {prod.image && (
-                          <img src={`http://localhost:5000${prod.image}`} alt={prod.name} style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8 }} />
+                        {prod.images && prod.images.length > 0 && (
+                          <img src={prod.images[0].url} alt={prod.name} style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8 }} />
                         )}
                       </td>
                       <td className="px-4 py-2">{prod.name}</td>

@@ -1,23 +1,24 @@
-// src/components/cart/CartDrawer.jsx
 import { useCart } from '../../context/CartContext';
 import { Link } from 'react-router-dom';
 
-function CartDrawer({ isOpen, onClose }) {
-  // ✅ FIXED: Use correct destructuring names from CartContext
-  const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
-  
+export default function CartDrawer({ isOpen, onClose }) {
+  const { cart, removeFromCart, updateCartItem, getCartTotal } = useCart();
+
   if (!isOpen) return null;
-  
+
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
+      {/* Overlay */}
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose}></div>
+      {/* Drawer */}
       <div className="absolute inset-y-0 right-0 max-w-full flex">
         <div className="w-screen max-w-md">
           <div className="h-full flex flex-col bg-white shadow-xl">
+            {/* Header */}
             <div className="flex-1 py-6 overflow-y-auto px-4">
               <div className="flex items-start justify-between">
                 <h2 className="text-lg font-medium text-gray-900">Shopping cart</h2>
-                <button 
+                <button
                   className="ml-3 h-7 w-7 text-gray-400 hover:text-gray-500"
                   onClick={onClose}
                 >
@@ -26,9 +27,9 @@ function CartDrawer({ isOpen, onClose }) {
                 </button>
               </div>
 
+              {/* Cart Items */}
               <div className="mt-8">
-                {cartItems.length === 0 ? (
-                  // ✅ ADDED: Empty cart state
+                {!cart?.items?.length ? (
                   <div className="text-center py-12">
                     <p className="text-gray-500 mb-4">Your cart is empty</p>
                     <button
@@ -41,12 +42,15 @@ function CartDrawer({ isOpen, onClose }) {
                 ) : (
                   <div className="flow-root">
                     <ul className="-my-6 divide-y divide-gray-200">
-                      {cartItems.map((item) => (
-                        <li key={`${item.id}-${item.selectedSize}`} className="py-6 flex">
+                      {cart.items.map((item) => (
+                        <li key={item._id || `${item.product}-${item.size || ''}`} className="py-6 flex">
                           <div className="flex-shrink-0 w-24 h-24 border rounded-md overflow-hidden">
                             <img
-                              // ✅ FIXED: Handle both image formats with fallback
-                              src={item.images?.[0] || item.image || '/images/placeholder.jpg'}
+                              src={
+                                item.image ||
+                                item.product?.images?.[0]?.url ||
+                                '/images/placeholder.jpg'
+                              }
                               alt={item.name}
                               className="w-full h-full object-center object-cover"
                               onError={(e) => {
@@ -54,21 +58,25 @@ function CartDrawer({ isOpen, onClose }) {
                               }}
                             />
                           </div>
-
                           <div className="ml-4 flex-1 flex flex-col">
                             <div>
                               <div className="flex justify-between text-base font-medium text-gray-900">
                                 <h3>{item.name}</h3>
-                                {/* ✅ FIXED: Use salePrice if available, fallback to price */}
                                 <p className="ml-4">₹{item.salePrice || item.price}</p>
                               </div>
-                              <p className="mt-1 text-sm text-gray-500">Size: {item.selectedSize}</p>
+                              <p className="mt-1 text-sm text-gray-500">Size: {item.size}</p>
+                              {item.color && (
+                                <p className="text-sm text-gray-500">Color: {item.color}</p>
+                              )}
                             </div>
                             <div className="flex-1 flex items-end justify-between text-sm">
+                              {/* Quantity Controls */}
                               <div className="flex items-center">
-                                <button 
+                                <button
                                   className="px-2 border rounded-l hover:bg-gray-50 disabled:opacity-50"
-                                  onClick={() => updateQuantity(item.id, item.selectedSize, Math.max(1, item.quantity - 1))}
+                                  onClick={() =>
+                                    updateCartItem(item._id, Math.max(1, item.quantity - 1))
+                                  }
                                   disabled={item.quantity <= 1}
                                 >
                                   -
@@ -76,20 +84,21 @@ function CartDrawer({ isOpen, onClose }) {
                                 <span className="px-3 py-1 border-t border-b min-w-[50px] text-center">
                                   {item.quantity}
                                 </span>
-                                <button 
+                                <button
                                   className="px-2 border rounded-r hover:bg-gray-50"
-                                  onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity + 1)}
+                                  onClick={() =>
+                                    updateCartItem(item._id, item.quantity + 1)
+                                  }
                                 >
                                   +
                                 </button>
                               </div>
-
+                              {/* Remove Button */}
                               <div className="flex">
-                                <button 
-                                  type="button" 
+                                <button
+                                  type="button"
                                   className="font-medium text-indigo-600 hover:text-indigo-500"
-                                  // ✅ FIXED: Include selectedSize parameter
-                                  onClick={() => removeFromCart(item.id, item.selectedSize)}
+                                  onClick={() => removeFromCart(item._id)}
                                 >
                                   Remove
                                 </button>
@@ -104,18 +113,17 @@ function CartDrawer({ isOpen, onClose }) {
               </div>
             </div>
 
-            {cartItems.length > 0 && (
+            {/* Footer */}
+            {cart?.items?.length > 0 && (
               <div className="border-t border-gray-200 py-6 px-4">
                 <div className="flex justify-between text-base font-medium text-gray-900">
                   <p>Subtotal</p>
-                  {/* ✅ FIXED: Use getCartTotal() function */}
                   <p>₹{getCartTotal().toFixed(2)}</p>
                 </div>
                 <p className="mt-0.5 text-sm text-gray-500">
                   Shipping and taxes calculated at checkout.
                 </p>
                 <div className="mt-6">
-                  {/* ✅ FIXED: Use Link instead of dummy anchor */}
                   <Link
                     to="/checkout"
                     onClick={onClose}
@@ -144,5 +152,3 @@ function CartDrawer({ isOpen, onClose }) {
     </div>
   );
 }
-
-export default CartDrawer;
