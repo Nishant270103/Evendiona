@@ -92,20 +92,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes
-try {
-  app.use('/api/auth', require('./src/routes/auth'));
-  app.use('/api/products', require('./src/routes/products'));
-  app.use('/api/cart', require('./src/routes/cart'));
-  app.use('/api/orders', require('./src/routes/order'));
-  app.use('/api/users', require('./src/routes/users'));
-  app.use('/api/wishlist', require('./src/routes/wishlist'));
-  app.use('/api/upload', require('./src/routes/upload'));
-} catch (error) {
-  console.error('❌ Route loading error:', error.message);
-  process.exit(1);
-}
+app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/products', require('./src/routes/products'));
+app.use('/api/cart', require('./src/routes/cart'));
+app.use('/api/orders', require('./src/routes/order'));
+app.use('/api/users', require('./src/routes/users'));
+app.use('/api/wishlist', require('./src/routes/wishlist'));
+app.use('/api/upload', require('./src/routes/upload'));
 
-<<<<<<< HEAD
 // ------------------- ERROR HANDLING -------------------
 
 // 404 handler for unknown API routes
@@ -116,65 +110,6 @@ app.use('/api/*', (req, res) => {
     path: req.originalUrl,
     method: req.method
   });
-=======
-app.post('/api/auth/google-login', async (req, res) => {
-  const token = req.body.token || req.body.credential; // accept either field
-
-  if (!token) {
-    console.error('❌ Token is missing in the request body');
-    return res.status(400).json({ success: false, message: 'Token is missing' });
-  }
-
-  console.log('📥 Received token:', token);
-
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID, // Use your correct Google client ID
-    });
-
-    const payload = ticket.getPayload();
-    console.log('✅ Google user info:', payload);
-
-    const userEmail = payload.email;
-    const userName = payload.name;
-
-    // Check if user exists or create a new user
-    let user = await User.findOne({ email: userEmail });
-    if (!user) {
-      console.log('ℹ️ User not found, creating a new user');
-      user = await User.create({
-        name: userName,
-        email: userEmail,
-        isEmailVerified: true,
-        isActive: true,
-      });
-    }
-
-    // Generate JWT token
-    const jwtToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: '7d' });
-
-    console.log('✅ JWT token generated:', jwtToken);
-
-    res.json({
-      success: true,
-      message: 'User authenticated',
-      data: {
-        user: {
-          id: user._id,
-          name: userName,
-          email: userEmail,
-          role: user.role,
-          isEmailVerified: user.isEmailVerified
-        },
-        token: jwtToken
-      }
-    });
-  } catch (error) {
-    console.error('❌ Google authentication error:', error);
-    res.status(400).json({ success: false, message: 'Invalid token or authentication failed' });
-  }
->>>>>>> ab36fdd14e4f7c104a788cfb80e7e83c39601579
 });
 
 // Global error handler
@@ -226,9 +161,13 @@ app.use((err, req, res, next) => {
 process.on('unhandledRejection', (err, promise) => {
   console.error('❌ Unhandled Promise Rejection:', err.message);
   // Close server & exit process
-  server.close(() => {
+  if (typeof server !== 'undefined' && server.close) {
+    server.close(() => {
+      process.exit(1);
+    });
+  } else {
     process.exit(1);
-  });
+  }
 });
 
 // Handle uncaught exceptions

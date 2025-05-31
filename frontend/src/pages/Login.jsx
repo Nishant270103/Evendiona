@@ -10,12 +10,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-<<<<<<< HEAD
-  const { loginWithToken, isAuthenticated } = useAuth();
-=======
-  const { login, loginWithToken, isAuthenticated } = useAuth();
->>>>>>> ab36fdd14e4f7c104a788cfb80e7e83c39601579
-  const navigate = useNavigate();
+const { loginWithToken, isAuthenticated } = useAuth();
+const navigate = useNavigate();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -64,168 +60,161 @@ export default function Login() {
           body: JSON.stringify({ email, otp }),
         }
       );
-      const data = await res.json();
-<<<<<<< HEAD
-      if (res.ok && data.success && data.data?.token) {
-        if (loginWithToken) {
-          await loginWithToken(data.data.token, data.data.user);
-        }
-=======
-      if (data.success) {
+    const data = await res.json();
+    if (res.ok && data.success && data.data?.token) {
+      if (loginWithToken) {
         await loginWithToken(data.data.token, data.data.user);
->>>>>>> ab36fdd14e4f7c104a788cfb80e7e83c39601579
-        navigate("/", { replace: true });
-      } else {
-        setError(data.message || "Invalid OTP. Please try again.");
       }
-    } catch (err) {
-      setError("Invalid OTP. Please try again.");
-    } finally {
-      setLoading(false);
+      navigate("/", { replace: true });
+    } else {
+      setError(data.message || "Invalid OTP. Please try again.");
     }
-  };
+  } catch (err) {
+    setError("Invalid OTP. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-block mb-6">
-            <div className="w-16 h-16 bg-gray-900 rounded-xl flex items-center justify-center hover:bg-gray-800 transition-colors">
-              <span className="text-white text-2xl font-bold">E</span>
-            </div>
-          </Link>
-          <h2 className="text-3xl font-light text-gray-900 mb-2">Welcome Back</h2>
-          <p className="text-gray-600">Sign in to your Evendiona account</p>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
-
-          {step === 1 && (
-            <form onSubmit={handleRequestOtp} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (error) setError("");
-                    }}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-colors"
-                    placeholder="Enter your email"
-                    required
-                    disabled={loading}
-                    autoComplete="email"
-                  />
-                  <EnvelopeIcon className="h-5 w-5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-3 font-medium rounded-lg transition-colors ${
-                  loading
-                    ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                    : "bg-gray-900 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                }`}
-              >
-                {loading ? "Sending OTP..." : "Send OTP"}
-              </button>
-            </form>
-          )}
-
-          {step === 2 && (
-            <form onSubmit={handleVerifyOtp} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter OTP
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={otp}
-                    onChange={(e) => {
-                      setOtp(e.target.value);
-                      if (error) setError("");
-                    }}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-colors"
-                    placeholder="Enter the OTP sent to your email"
-                    required
-                    disabled={loading}
-                    autoFocus
-                    maxLength={6}
-                  />
-                  <KeyIcon className="h-5 w-5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-3 font-medium rounded-lg transition-colors ${
-                  loading
-                    ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                    : "bg-gray-900 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-200"
-                }`}
-              >
-                {loading ? "Verifying..." : "Verify & Sign In"}
-              </button>
-              <button
-                type="button"
-                className="auth-link mt-2 text-sm text-gray-600 hover:text-gray-900"
-                onClick={() => setStep(1)}
-                disabled={loading}
-              >
-                Change email
-              </button>
-            </form>
-          )}
-
-          {/* Signup Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <Link
-                to="/signup"
-                className="text-gray-900 hover:underline font-medium transition-colors"
-              >
-                Sign up here
-              </Link>
-            </p>
+    <>
+      {/* Header */}
+      <div className="text-center mb-8">
+        <Link to="/" className="inline-block mb-6">
+          <div className="w-16 h-16 bg-gray-900 rounded-xl flex items-center justify-center hover:bg-gray-800 transition-colors">
+            <span className="text-white text-2xl font-bold">E</span>
           </div>
-        </div>
+        </Link>
+        <h2 className="text-3xl font-light text-gray-900 mb-2">Welcome Back</h2>
+        <p className="text-gray-600">Sign in to your Evendiona account</p>
+      </div>
 
-        {/* Back to Home */}
-        <div className="mt-6 text-center">
-          <Link
-            to="/"
-            className="text-sm text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center"
-          >
-            <svg
-              className="w-4 h-4 mr-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
+        {step === 1 && (
+          <form onSubmit={handleRequestOtp} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError("");
+                  }}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-colors"
+                  placeholder="Enter your email"
+                  required
+                  disabled={loading}
+                  autoComplete="email"
+                />
+                <EnvelopeIcon className="h-5 w-5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 font-medium rounded-lg transition-colors ${
+                loading
+                  ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                  : "bg-gray-900 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-200"
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            Back to Home
-          </Link>
+              {loading ? "Sending OTP..." : "Send OTP"}
+            </button>
+          </form>
+        )}
+
+        {step === 2 && (
+          <form onSubmit={handleVerifyOtp} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Enter OTP
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(e) => {
+                    setOtp(e.target.value);
+                    if (error) setError("");
+                  }}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-colors"
+                  placeholder="Enter the OTP sent to your email"
+                  required
+                  disabled={loading}
+                  autoFocus
+                  maxLength={6}
+                />
+                <KeyIcon className="h-5 w-5 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 font-medium rounded-lg transition-colors ${
+                loading
+                  ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                  : "bg-gray-900 text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-200"
+              }`}
+            >
+              {loading ? "Verifying..." : "Verify & Sign In"}
+            </button>
+            <button
+              type="button"
+              className="auth-link mt-2 text-sm text-gray-600 hover:text-gray-900"
+              onClick={() => setStep(1)}
+              disabled={loading}
+            >
+              Change email
+            </button>
+          </form>
+        )}
+
+        {/* Signup Link */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{" "}
+            <Link
+              to="/signup"
+              className="text-gray-900 hover:underline font-medium transition-colors"
+            >
+              Sign up here
+            </Link>
+          </p>
         </div>
       </div>
-    </div>
+
+      {/* Back to Home */}
+      <div className="mt-6 text-center">
+        <Link
+          to="/"
+          className="text-sm text-gray-600 hover:text-gray-900 transition-colors inline-flex items-center"
+        >
+          <svg
+            className="w-4 h-4 mr-1"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
+          </svg>
+          Back to Home
+        </Link>
+      </div>
+    </>
   );
 }
