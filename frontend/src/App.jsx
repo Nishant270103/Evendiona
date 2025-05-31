@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -18,7 +18,6 @@ import Signup from './pages/Signup';
 import EmailVerification from './pages/EmailVerification';
 import Wishlist from "./pages/Wishlist";
 import EditProfile from './pages/EditProfile';
-
 
 // User Protected Pages
 import Cart from './pages/Cart';
@@ -54,13 +53,15 @@ if (!GOOGLE_CLIENT_ID && import.meta.env.MODE === 'development') {
   console.log('💡 Add VITE_GOOGLE_CLIENT_ID=your_client_id to your .env file');
 }
 
-// Public Layout Wrapper
-const PublicLayout = ({ children, showHeader = true }) => (
-  <>
-    {showHeader && <Header />}
-    {children}
-  </>
-);
+// Public Layout Wrapper using Outlet
+function PublicLayout({ showHeader = true }) {
+  return (
+    <>
+      {showHeader && <Header />}
+      <Outlet />
+    </>
+  );
+}
 
 function App() {
   return (
@@ -68,95 +69,78 @@ function App() {
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         <AuthProvider>
           <CartProvider>
-            <Router>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-                <Route path="/collection" element={<PublicLayout><Catalog /></PublicLayout>} />
-                <Route path="/product/:id" element={<PublicLayout><ProductDetail /></PublicLayout>} />
-                <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-                <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
-
-                {/* Auth Routes (No Header) */}
-                <Route path="/login" element={<PublicLayout showHeader={false}><Login /></PublicLayout>} />
-                <Route path="/signup" element={<PublicLayout showHeader={false}><Signup /></PublicLayout>} />
-                <Route path="/verify-email" element={<PublicLayout showHeader={false}><EmailVerification /></PublicLayout>} />
-                <Route path="/account/edit" element={<EditProfile />} />
-
-
-                {/* User Protected Routes */}
-                <Route path="/cart" element={
-                  <ProtectedRoute>
-                    <PublicLayout><Cart /></PublicLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/checkout" element={
-                  <ProtectedRoute>
-                    <PublicLayout><Checkout /></PublicLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/order-confirmation" element={
-                  <ProtectedRoute>
-                    <PublicLayout><OrderConfirmation /></PublicLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/profile" element={
-                  <ProtectedRoute>
-                    <PublicLayout><UserProfile /></PublicLayout>
-                  </ProtectedRoute>
-                } />
-                <Route path="/orders" element={
-                  <ProtectedRoute>
-                    <PublicLayout><UserOrders /></PublicLayout>
-                  </ProtectedRoute>
-                } />
-
+            <Routes>
+              {/* Public Routes */}
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/collection" element={<Catalog />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/terms" element={<TermsAndConditions />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/wishlist" element={<Wishlist />} />
-
-                {/* Admin Auth (No Header) */}
-                <Route path="/admin/login" element={<PublicLayout showHeader={false}><AdminLogin /></PublicLayout>} />
-
-                {/* Admin Dashboard Routes (Nested) */}
-                <Route path="/admin" element={
-                  <AdminProtectedRoute>
-                    <AdminLayout />
-                  </AdminProtectedRoute>
-                }>
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="products" element={<AdminProducts />} />
-                  <Route path="products/new" element={<AdminProducts />} />
-                  <Route path="products/edit/:id" element={<AdminProducts />} />
-                  <Route path="orders" element={<AdminOrders />} />
-                  <Route path="orders/:id" element={<AdminOrders />} />
-                  <Route path="customers" element={<AdminCustomers />} />
-                  <Route path="customers/:id" element={<AdminCustomers />} />
-                  <Route path="analytics" element={<AdminAnalytics />} />
-                  <Route path="settings" element={<AdminSettings />} />
-                  <Route path="settings/profile" element={<AdminSettings />} />
-                  <Route path="settings/security" element={<AdminSettings />} />
-                  {/* Admin 404 */}
-                  <Route path="*" element={
-                    <div className="text-center py-12">
-                      <h2 className="text-2xl font-light text-gray-900 mb-4">Admin Page Not Found</h2>
-                      <p className="text-gray-600">The admin page you're looking for doesn't exist.</p>
-                    </div>
-                  } />
-                </Route>
-
-                {/* Legal Pages */}
-                <Route path="/terms" element={<PublicLayout><TermsAndConditions /></PublicLayout>} />
-                <Route path="/privacy" element={<PublicLayout><PrivacyPolicy /></PublicLayout>} />
-
-                {/* Redirects */}
-                <Route path="/admin-login" element={<Navigate to="/admin/login" replace />} />
-                <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
-                <Route path="/shop" element={<Navigate to="/collection" replace />} />
-                <Route path="/products" element={<Navigate to="/collection" replace />} />
-
+                <Route path="/account/edit" element={<EditProfile />} />
                 {/* 404 Not Found */}
-                <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />
-              </Routes>
-            </Router>
+                <Route path="*" element={<NotFound />} />
+              </Route>
+
+              {/* Auth Routes (No Header) */}
+              <Route element={<PublicLayout showHeader={false} />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/verify-email" element={<EmailVerification />} />
+              </Route>
+
+              {/* User Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<PublicLayout />}>
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                  <Route path="/profile" element={<UserProfile />} />
+                  <Route path="/orders" element={<UserOrders />} />
+                </Route>
+              </Route>
+
+              {/* Admin Auth (No Header) */}
+              <Route element={<PublicLayout showHeader={false} />}>
+                <Route path="/admin/login" element={<AdminLogin />} />
+              </Route>
+
+              {/* Admin Dashboard Routes (Nested) */}
+              <Route path="/admin" element={
+                <AdminProtectedRoute>
+                  <AdminLayout />
+                </AdminProtectedRoute>
+              }>
+                <Route index element={<AdminDashboard />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="products/new" element={<AdminProducts />} />
+                <Route path="products/edit/:id" element={<AdminProducts />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="orders/:id" element={<AdminOrders />} />
+                <Route path="customers" element={<AdminCustomers />} />
+                <Route path="customers/:id" element={<AdminCustomers />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="settings/profile" element={<AdminSettings />} />
+                <Route path="settings/security" element={<AdminSettings />} />
+                {/* Admin 404 */}
+                <Route path="*" element={
+                  <div className="text-center py-12">
+                    <h2 className="text-2xl font-light text-gray-900 mb-4">Admin Page Not Found</h2>
+                    <p className="text-gray-600">The admin page you're looking for doesn't exist.</p>
+                  </div>
+                } />
+              </Route>
+
+              {/* Redirects */}
+              <Route path="/admin-login" element={<Navigate to="/admin/login" replace />} />
+              <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+              <Route path="/shop" element={<Navigate to="/collection" replace />} />
+              <Route path="/products" element={<Navigate to="/collection" replace />} />
+            </Routes>
           </CartProvider>
         </AuthProvider>
       </GoogleOAuthProvider>

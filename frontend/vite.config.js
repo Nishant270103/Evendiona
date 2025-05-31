@@ -1,30 +1,60 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react()],
+  
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // Add this to fix the process.env error
+  
+  // Environment variables handling
   define: {
-    'process.env': {}
+    'process.env': {},
+    global: 'globalThis',
   },
-  // Optional: Add these for better development experience
+  
+  // Server configuration
   server: {
     port: 3000,
+    host: true,
     open: true,
-    host: true
+    cors: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
+  
+  // Build configuration
   build: {
-    sourcemap: true,
     outDir: 'dist',
-  }
+    sourcemap: true,
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          ui: ['lucide-react', 'framer-motion'],
+        },
+      },
+    },
+  },
+  
+  // CSS configuration
+  css: {
+    postcss: './postcss.config.js',
+  },
+  
+  // Optimize deps
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
+  },
 });
