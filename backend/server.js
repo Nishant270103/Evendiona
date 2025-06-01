@@ -7,24 +7,26 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ------------------- SECURITY & MIDDLEWARE -------------------
 
-app.use(helmet({
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https:"],
-            scriptSrc: ["'self'", "https:"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https:"],
-        },
-    },
-}));
+// Temporarily disable all middleware
+// app.use(helmet({
+//     crossOriginEmbedderPolicy: false,
+//     contentSecurityPolicy: {
+//         directives: {
+//             defaultSrc: ["'self'"],
+//             styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+//             scriptSrc: ["'self'", "https:"],
+//             imgSrc: ["'self'", "data:", "https:"],
+//             connectSrc: ["'self'", "https:"],
+//         },
+//     },
+// }));
 
 const corsOptions = {
     origin: function (origin, callback) {
@@ -47,15 +49,17 @@ const corsOptions = {
     exposedHeaders: ['X-Total-Count'],
 };
 app.use(cors(corsOptions));
-app.options('/*splat', cors(corsOptions));
+app.options('*', cors(corsOptions));
 
-
+// Enable JSON body parsing middleware
 app.use(express.json({
     limit: '10mb',
     verify: (req, res, buf) => {
         req.rawBody = buf;
     }
 }));
+
+// Enable URL-encoded body parsing middleware
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 if (process.env.NODE_ENV === 'development') {
@@ -141,17 +145,13 @@ app.get('/api/test', (req, res) => {
     });
 });
 
-const routeFiles = [
-    { path: '/api/auth', file: './src/routes/auth' },
-    { path: '/api/products', file: './src/routes/products' },
-    { path: '/api/cart', file: './src/routes/cart' },
-    { path: '/api/orders', file: './src/routes/order' },
-    { path: '/api/users', file: './src/routes/users' },
-    { path: '/api/wishlist', file: './src/routes/wishlist' },
-    { path: '/api/upload', file: './src/routes/upload' },
-    { path: '/api/test', file: './src/routes/test' }
-];
+// Dynamically load all route files from the `src/routes` directory
+const routeFiles = fs.readdirSync(path.join(__dirname, 'src', 'routes')).map(file => ({
+    file: path.join(__dirname, 'src', 'routes', file),
+    path: `/api/${path.basename(file, path.extname(file))}`.replace(/\.js$/, '')
+}));
 
+// Enable dynamic route loading
 routeFiles.forEach(route => {
     try {
         const routeHandler = require(route.file);
@@ -165,10 +165,49 @@ routeFiles.forEach(route => {
     }
 });
 
+// Test only static route
+app.get('/api/health', (req, res) => {
+    res.json({ success: true, message: 'Health check is working!' });
+});
+
+// Log all loaded routes after the server has started
+const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
+    console.log(`🔗 Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📅 Started at: ${new Date().toISOString()}`);
+});
+
+server.on('listening', () => {
+    app._router.stack.forEach((middleware) => {
+        if (middleware.route) {
+            console.log(`Route: ${middleware.route.path}`);
+        } else if (middleware.name === 'router') {
+            console.log(`Middleware: ${middleware.name}`);
+            middleware.handle.stack.forEach((handler) => {
+                if (handler.route) {
+                    console.log(`Nested Route: ${handler.route.path}`);
+                } else {
+                    console.log(`Nested Middleware: ${handler.name}`);
+                }
+            });
+        }
+    });
+});
+
+// Adding a log to confirm the `/api/auth` route
+console.log('🔗 Confirming /api/auth route is active');
+
+// Log all dynamically loaded routes
+console.log('Loaded routes:', routeFiles.map(r => r.path));
+
 // ------------------- ERROR HANDLING -------------------
 
-// 404 handler for unknown API routes (Express 5.x+ syntax)
-app.use('/api/{*splat}', (req, res) => {
+// Moving wildcard routes to the end to avoid conflicts
+
+// Fixing 404 handler for unknown API routes
+app.use('/api/*', (req, res) => {
     res.status(404).json({
         success: false,
         message: 'API endpoint not found',
@@ -178,8 +217,8 @@ app.use('/api/{*splat}', (req, res) => {
     });
 });
 
-// 404 handler for non-API routes (Express 5.x+ syntax)
-app.use('{*splat}', (req, res) => {
+// Fixing 404 handler for non-API routes
+app.use('*', (req, res) => {
     res.status(404).json({
         success: false,
         message: 'Route not found',
@@ -259,14 +298,6 @@ process.on('uncaughtException', (err) => {
 });
 
 // ------------------- START SERVER -------------------
-const server = app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
-    console.log(`🔗 Health Check: http://localhost:${PORT}/api/health`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📅 Started at: ${new Date().toISOString()}`);
-});
-
 const gracefulShutdown = (signal) => {
     console.log(`\n👋 ${signal} received. Shutting down gracefully...`);
     server.close(() => {
